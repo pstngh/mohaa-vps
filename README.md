@@ -58,21 +58,21 @@ ready-to-load `mohaa-blocklist.nft`, validates the syntax, and commits it back.
 So the server never runs the conversion — it just copies the validated file and
 loads it.
 
-Install nftables (the `nft` command isn't on the box by default) and clone the
-repo:
+The server only ever needs the finished `mohaa-blocklist.nft` — not the repo,
+not the converter. Grab just that file with a throwaway shallow clone, load it,
+and delete the clone.
+
+Install nftables (the `nft` command isn't on the box by default) and pull the
+built file into place:
 
 ```bash
 sudo apt install -y nftables git
-cd /home/debian
-git clone https://github.com/pstngh/mohaa-vps.git
-```
-
-Copy the pre-built blocklist into place and install the boot service:
-
-```bash
+cd /tmp
+git clone --depth 1 https://github.com/pstngh/mohaa-vps.git
 sudo mkdir -p /etc/nftables.d
-sudo cp /home/debian/mohaa-vps/mohaa-blocklist.nft /etc/nftables.d/
-sudo cp /home/debian/mohaa-vps/mohaa-blocklist.service /etc/systemd/system/
+sudo cp /tmp/mohaa-vps/mohaa-blocklist.nft /etc/nftables.d/
+sudo cp /tmp/mohaa-vps/mohaa-blocklist.service /etc/systemd/system/
+rm -rf /tmp/mohaa-vps
 sudo systemctl daemon-reload
 sudo systemctl enable --now mohaa-blocklist.service
 ```
@@ -86,25 +86,26 @@ sudo nft list set inet mohaa_blocklist blocked | head
 You should see a list of blocked CIDR ranges.
 
 **When the ban list changes:** edit `ipfilter.cfg` in the repo and push (or edit
-it on GitHub directly). The Action regenerates `mohaa-blocklist.nft`. Then on the
-server:
+it on GitHub directly). The Action regenerates and commits `mohaa-blocklist.nft`.
+Then pull just the new file onto the server:
 
 ```bash
-cd /home/debian/mohaa-vps && git pull
-sudo cp mohaa-blocklist.nft /etc/nftables.d/
+cd /tmp
+git clone --depth 1 https://github.com/pstngh/mohaa-vps.git
+sudo cp /tmp/mohaa-vps/mohaa-blocklist.nft /etc/nftables.d/
+rm -rf /tmp/mohaa-vps
 sudo systemctl restart mohaa-blocklist
 ```
 
 It reloads atomically — no server restart needed.
 
+> The server keeps nothing but `/etc/nftables.d/mohaa-blocklist.nft` and the
+> service unit. No permanent clone, no converter script on the box.
+
 > The drop is scoped to the game ports (12203/12300 UDP), so it can't lock you
 > out of SSH even if you connect from a listed range. To block those IPs from
 > *everything* instead, remove the `udp dport { ... }` line from
-> `blocklist-update.sh` and push — the Action rebuilds the file.
-
-> `blocklist-update.sh` is the converter (the Action runs it). You can also run
-> it directly on the server to convert + load in one step:
-> `sudo bash /home/debian/mohaa-vps/blocklist-update.sh /home/debian/mohaa-vps/ipfilter.cfg`
+> `blocklist-update.sh` in the repo and push — the Action rebuilds the file.
 
 ## 4. Daily use
 
