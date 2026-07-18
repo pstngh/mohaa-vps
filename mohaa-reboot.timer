@@ -1,0 +1,9 @@
+[Unit]
+Description=Daily reboot at midnight (America/New_York)
+
+[Timer]
+OnCalendar=*-*-* 00:00:00 America/New_York
+Persistent=false
+
+[Install]
+WantedBy=timers.target

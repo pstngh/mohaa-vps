@@ -107,7 +107,41 @@ It reloads atomically — no server restart needed.
 > *everything* instead, remove the `udp dport { ... }` line from
 > `blocklist-update.sh` in the repo and push — the Action rebuilds the file.
 
-## 4. Daily use
+## 4. Daily reboot at midnight (Eastern)
+
+Reboots the box every day at 00:00 `America/New_York` (auto-adjusts for
+EST/EDT). A systemd timer triggers a reboot service. On reboot the game server
+and blocklist come back automatically (both are enabled).
+
+```bash
+sudo tee /etc/systemd/system/mohaa-reboot.service > /dev/null <<'EOF'
+[Unit]
+Description=Scheduled system reboot
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/systemctl reboot
+EOF
+sudo tee /etc/systemd/system/mohaa-reboot.timer > /dev/null <<'EOF'
+[Unit]
+Description=Daily reboot at midnight (America/New_York)
+
+[Timer]
+OnCalendar=*-*-* 00:00:00 America/New_York
+Persistent=false
+
+[Install]
+WantedBy=timers.target
+EOF
+sudo systemctl daemon-reload
+sudo systemctl enable --now mohaa-reboot.timer
+systemctl list-timers mohaa-reboot.timer --no-pager
+```
+
+The last command shows the next fire time so you can confirm it. To stop the
+daily reboot later: `sudo systemctl disable --now mohaa-reboot.timer`.
+
+## 5. Daily use
 
 ```bash
 sudo systemctl start mohaa
@@ -117,7 +151,7 @@ sudo systemctl status mohaa
 journalctl -u mohaa -f     # live logs, Ctrl-C to quit
 ```
 
-## 5. Change launch options
+## 6. Change launch options
 
 Re-paste the block in step 1 with your new options (it overwrites the file),
 then `sudo systemctl restart mohaa`.
