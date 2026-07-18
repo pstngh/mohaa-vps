@@ -1,7 +1,7 @@
 #!/bin/bash
 #
-# Convert a MOHAA-style ipfilter.cfg (wildcard format) into an nftables set
-# and load it. Re-run any time the ban list changes.
+# Convert a MOHAA-style ipfilter.cfg (wildcard format) into an nftables set,
+# and (unless GENERATE_ONLY=1) load it. Re-run any time the ban list changes.
 #
 # Wildcard -> CIDR:
 #   1.2.3.4   -> 1.2.3.4/32
@@ -9,12 +9,14 @@
 #   1.2.*.*   -> 1.2.0.0/16
 #   1.*.*.*   -> 1.0.0.0/8
 #
-# Usage: sudo ./blocklist-update.sh [path-to-ipfilter.cfg]
+# Usage:
+#   sudo ./blocklist-update.sh [ipfilter.cfg] [output.nft]   # convert + load
+#   GENERATE_ONLY=1 ./blocklist-update.sh in.cfg out.nft     # convert only (CI)
 
 set -euo pipefail
 
 SRC="${1:-/home/debian/moh/main/ipfilter.cfg}"
-OUT="/etc/nftables.d/mohaa-blocklist.nft"
+OUT="${2:-/etc/nftables.d/mohaa-blocklist.nft}"
 GAME_PORTS="12203, 12300"   # UDP ports the ban applies to
 
 if [[ ! -f "$SRC" ]]; then
@@ -58,5 +60,11 @@ table inet mohaa_blocklist {
 }
 EOF
 
+echo "Generated $OUT ($count blocked ranges)."
+
+if [[ "${GENERATE_ONLY:-0}" == "1" ]]; then
+  exit 0
+fi
+
 nft -f "$OUT"
-echo "Loaded $count blocked ranges into nftables (set: mohaa_blocklist/blocked)."
+echo "Loaded into nftables (set: mohaa_blocklist/blocked)."

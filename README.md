@@ -52,8 +52,11 @@ sudo ufw enable
 list that size, so the blocklist runs as an nftables set that drops those IPs on
 the game ports. It coexists with the ufw rules from step 2.
 
-The `blocklist-update.sh` script and the `ipfilter.cfg` list both live in this
-repo, so clone it once and run everything from there.
+**GitHub converts the list for you.** A GitHub Action
+(`.github/workflows/blocklist.yml`) watches `ipfilter.cfg`, converts it to the
+ready-to-load `mohaa-blocklist.nft`, validates the syntax, and commits it back.
+So the server never runs the conversion — it just copies the validated file and
+loads it.
 
 Install nftables (the `nft` command isn't on the box by default) and clone the
 repo:
@@ -64,18 +67,14 @@ cd /home/debian
 git clone https://github.com/pstngh/mohaa-vps.git
 ```
 
-Build + load the blocklist from the repo:
+Copy the pre-built blocklist into place and install the boot service:
 
 ```bash
-sudo bash /home/debian/mohaa-vps/blocklist-update.sh /home/debian/mohaa-vps/ipfilter.cfg
-```
-
-Install the boot service (reloads the blocklist on every boot):
-
-```bash
+sudo mkdir -p /etc/nftables.d
+sudo cp /home/debian/mohaa-vps/mohaa-blocklist.nft /etc/nftables.d/
 sudo cp /home/debian/mohaa-vps/mohaa-blocklist.service /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable mohaa-blocklist.service
+sudo systemctl enable --now mohaa-blocklist.service
 ```
 
 Check it's active:
@@ -86,19 +85,26 @@ sudo nft list set inet mohaa_blocklist blocked | head
 
 You should see a list of blocked CIDR ranges.
 
-**When the ban list changes:** update `ipfilter.cfg` and re-run the script:
+**When the ban list changes:** edit `ipfilter.cfg` in the repo and push (or edit
+it on GitHub directly). The Action regenerates `mohaa-blocklist.nft`. Then on the
+server:
 
 ```bash
 cd /home/debian/mohaa-vps && git pull
-sudo bash /home/debian/mohaa-vps/blocklist-update.sh /home/debian/mohaa-vps/ipfilter.cfg
+sudo cp mohaa-blocklist.nft /etc/nftables.d/
+sudo systemctl restart mohaa-blocklist
 ```
 
-It reloads atomically — no restart needed.
+It reloads atomically — no server restart needed.
 
 > The drop is scoped to the game ports (12203/12300 UDP), so it can't lock you
 > out of SSH even if you connect from a listed range. To block those IPs from
 > *everything* instead, remove the `udp dport { ... }` line from
-> `blocklist-update.sh` and re-run it.
+> `blocklist-update.sh` and push — the Action rebuilds the file.
+
+> `blocklist-update.sh` is the converter (the Action runs it). You can also run
+> it directly on the server to convert + load in one step:
+> `sudo bash /home/debian/mohaa-vps/blocklist-update.sh /home/debian/mohaa-vps/ipfilter.cfg`
 
 ## 4. Daily use
 
