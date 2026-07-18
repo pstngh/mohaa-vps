@@ -23,7 +23,7 @@ You no longer need `screen`, `gs.sh`, or `gsload.sh`.
 2. Make sure `omohaaded` is executable and owned by the `debian` user:
 
    ```bash
-   chmod +x /home/debian/mohaa/omohaaded
+   chmod +x /home/debian/moh/omohaaded
    ```
 
 3. Reload systemd, enable at boot, and start now:
@@ -55,7 +55,7 @@ journalctl -u mohaa -n 200      # last 200 lines
 journalctl -u mohaa --since "1 hour ago"
 ```
 
-The game also still writes its own log inside `/home/debian/mohaa` because of
+The game also still writes its own log inside `/home/debian/moh` because of
 `+set logfile 2` in the launch line — that's unchanged.
 
 ## Firewall
