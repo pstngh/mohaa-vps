@@ -1,15 +1,7 @@
 # MOHAA server as a systemd service (Debian 13)
 
-Replaces the old `screen` + init scripts (`gsload.sh`, `gs.sh`) with a native
-**systemd** service. systemd handles startup at boot, crash auto-restart, and
-logging — no more `screen`, no `while true` loop, no `kill`-by-grep.
-
-| Old way | New way |
-|---|---|
-| `gs.sh` — `while true` loop that relaunches on crash | `Restart=always` + `RestartSec=2` |
-| `gsload.sh` — `screen -d -m` to background it | systemd runs & supervises the process |
-| Running `gsload.sh start` at boot | `systemctl enable` (starts at boot) |
-| `server.log` written by the loop | `journalctl` (the systemd journal) |
+Runs the MOHAA dedicated server under **systemd**, which handles startup at
+boot, crash auto-restart, and logging.
 
 Every step below is copy-pasteable straight into PuTTY. Server lives in
 `/home/debian/moh`, runs as user `debian`.
@@ -18,8 +10,8 @@ Every step below is copy-pasteable straight into PuTTY. Server lives in
 
 ## 1. Install + start the service
 
-Paste this whole block. It writes the unit file, enables it at boot, and starts
-it now:
+Paste this whole block. It makes the binary executable, writes the unit file,
+enables it at boot, and starts it now:
 
 ```bash
 chmod +x /home/debian/moh/omohaaded
@@ -82,8 +74,6 @@ firewall in the control panel, open the same two UDP ports there too.
 
 ## 3. Everyday commands
 
-These replace `gsload.sh {start|stop|restart}`:
-
 ```bash
 sudo systemctl start mohaa      # start
 sudo systemctl stop mohaa       # stop
@@ -93,7 +83,7 @@ sudo systemctl status mohaa     # running? recent log lines
 
 ---
 
-## 4. Logs (replaces `tail -f server.log`)
+## 4. Logs
 
 ```bash
 journalctl -u mohaa -f              # live follow (Ctrl-C to quit)
@@ -124,15 +114,6 @@ systemctl status mohaa --no-pager | grep -E 'Active|Main PID'
 
 ---
 
-## 6. Retire the old setup (optional, once you're happy)
-
-```bash
-rm -f /home/debian/moh/gs.sh /home/debian/moh/gsload.sh
-sudo apt remove -y screen        # only if nothing else uses screen
-```
-
----
-
 ## Changing the launch options later
 
 Edit the `ExecStart=` line, then reload + restart:
@@ -150,13 +131,12 @@ overwrites the file.
 
 ## Notes
 
-- **Crash-loop:** `StartLimitIntervalSec=0` means systemd retries forever, like
-  the old `while true` loop. To make it give up after repeated instant crashes,
-  delete that line; clear a failed state with `sudo systemctl reset-failed mohaa`.
+- **Crash-loop:** `StartLimitIntervalSec=0` means systemd retries forever. To
+  make it give up after repeated instant crashes, delete that line; clear a
+  failed state with `sudo systemctl reset-failed mohaa`.
 - **Boot ordering:** `network-online.target` makes it wait for the network
   before binding the ports at boot.
-- **Game's own log:** `+set logfile 2` still writes a log inside
-  `/home/debian/moh` — unchanged from before.
+- **Game's own log:** `+set logfile 2` writes a log inside `/home/debian/moh`.
 - **Harmless script errors:** `Script Error` lines in the log from
   `maps/dm/*.scr` are from the game's map/admin-mod scripts, not the service —
   ignore them.
