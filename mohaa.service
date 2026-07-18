@@ -1,0 +1,29 @@
+[Unit]
+Description=MOHAA Dedicated Server (FFA, port 12203)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=debian
+Group=debian
+WorkingDirectory=/home/debian/mohaa
+
+# The actual server. It runs in the foreground; systemd keeps it alive.
+ExecStart=/home/debian/mohaa/omohaaded +set com_target_game 0 +set net_port 12203 +set developer 1 +set logfile 2 +set net_queryport 12300 +exec server_opm.cfg
+
+# Auto-restart on crash (replaces the `while true; sleep 2` loop in gs.sh)
+Restart=always
+RestartSec=2
+
+# Never give up restarting, even if it crash-loops (matches old behavior).
+# Remove this line if you'd rather systemd back off after repeated fast crashes.
+StartLimitIntervalSec=0
+
+# Send stdout/stderr to the journal (replaces server.log).
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mohaa
+
+[Install]
+WantedBy=multi-user.target
