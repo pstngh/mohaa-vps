@@ -1,0 +1,12 @@
+[Unit]
+Description=MOHAA firewall blocklist (nftables set)
+After=network-pre.target ufw.service
+Wants=network-pre.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/nft -f /etc/nftables.d/mohaa-blocklist.nft
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
