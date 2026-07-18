@@ -58,6 +58,40 @@ journalctl -u mohaa --since "1 hour ago"
 The game also still writes its own log inside `/home/debian/mohaa` because of
 `+set logfile 2` in the launch line — that's unchanged.
 
+## Firewall
+
+The server listens on two **UDP** ports (from the launch line):
+
+| Port | Purpose |
+|---|---|
+| `12203/udp` | Game traffic (`+set net_port 12203`) |
+| `12300/udp` | Server browser / query (`+set net_queryport 12300`) |
+
+Run a firewall with a default-deny-inbound policy. `ufw` is the simplest choice
+and still uses the modern nftables backend under the hood:
+
+```bash
+sudo apt update && sudo apt install -y ufw
+sudo ufw allow 22/tcp
+sudo ufw allow 12203/udp
+sudo ufw allow 12300/udp
+sudo ufw enable
+```
+
+> ⚠️ Allow `22/tcp` **before** running `ufw enable`, or you'll lock yourself out
+> of SSH.
+
+Verify the resulting policy:
+
+```bash
+sudo ufw status verbose
+```
+
+You should see `deny (incoming)`, `allow (outgoing)`, and the three allow rules
+above. Note: this is UDP, not TCP — opening `12203/tcp` does nothing for this
+server. If you're on a VPS, also open the same two UDP ports in your provider's
+cloud firewall (control panel), which is separate from the OS firewall.
+
 ## Notes / tuning
 
 - **User:** the service runs as `debian`, not root. Adjust `User=`/`Group=` and
