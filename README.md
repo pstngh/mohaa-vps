@@ -107,6 +107,25 @@ It reloads atomically — no server restart needed.
 > *everything* instead, remove the `udp dport { ... }` line from
 > `blocklist-update.sh` in the repo and push — the Action rebuilds the file.
 
+### Turn the blocklist off / on
+
+Off (stays off through reboots; deletes nothing):
+
+```bash
+sudo systemctl disable --now mohaa-blocklist.service
+sudo nft delete table inet mohaa_blocklist
+```
+
+Back on:
+
+```bash
+sudo systemctl enable --now mohaa-blocklist.service
+```
+
+`disable` stops it loading at boot; `nft delete table` just unloads the live
+rules. The `.nft` file and service unit stay on disk, so turning it back on
+needs nothing re-downloaded.
+
 ## 4. Daily reboot at midnight (Eastern)
 
 Reboots the box every day at 00:00 `America/New_York` (auto-adjusts for
