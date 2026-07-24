@@ -3,6 +3,59 @@
 Runs the MOHAA dedicated server under systemd: starts at boot, auto-restarts on
 crash, logs to the journal. Server lives in `/home/debian/moh`.
 
+## 0. First-time VPS setup (fresh box)
+
+Skip this if you already have a non-root `debian` user with sudo. On a brand-new
+VPS you usually start as `root` with nothing installed.
+
+**As `root`** — update, install sudo, create the `debian` user:
+
+```bash
+apt update && apt -y upgrade
+apt -y install sudo git
+adduser debian                 # prompts for a password; creates /home/debian
+usermod -aG sudo debian        # give it sudo
+```
+
+**From your Mac** — set up key login for the new user, then log in as it:
+
+```bash
+ssh-copy-id debian@YOUR_VPS_IP
+ssh debian@YOUR_VPS_IP
+```
+
+Confirm sudo works (should print `root`):
+
+```bash
+sudo whoami
+```
+
+**(Recommended) disable direct root SSH** — only after `ssh debian@...` works:
+
+```bash
+sudo sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
+sudo systemctl restart ssh
+```
+
+**Get the game files to `/home/debian/moh`.** Copy from your Mac (or old box):
+
+```bash
+scp -r ~/path/to/moh debian@YOUR_VPS_IP:/home/debian/
+```
+
+If the folder ended up in the wrong place or owned by root, move it and fix
+ownership in one go (adjust the source path):
+
+```bash
+sudo mv /home/moh /home/debian/moh
+sudo chown -R debian:debian /home/debian/moh
+sudo chmod +x /home/debian/moh/omohaaded
+ls -ld /home/debian/moh        # should show: debian debian
+```
+
+Everything below assumes you are logged in as `debian` with the game in
+`/home/debian/moh`.
+
 ## 1. Install + start
 
 ```bash
