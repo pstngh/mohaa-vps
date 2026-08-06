@@ -61,7 +61,9 @@ Everything below assumes you are logged in as `debian` with the game in
 ```bash
 chmod +x /home/debian/moh/omohaaded
 sudo apt install unzip
-unzip /home/debian/moh/main/sound.zip
+cd /home/debian/moh/main
+unzip sound.zip
+rm sound.zip
 sudo tee /etc/systemd/system/mohaa.service > /dev/null <<'EOF'
 [Unit]
 Description=MOHAA Dedicated Server (FFA, port 12203)
